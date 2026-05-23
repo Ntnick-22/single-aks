@@ -1,0 +1,66 @@
+name: Terraform Apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: "Layer to apply"
+        required: true
+        type: choice
+        options:
+          - 00_rg
+          - 01_networking
+          - 04_aks
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Terraform Init
+        working-directory: ${{ inputs.layer }}
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: ${{ inputs.layer }}
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -out=tfplan
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -eq 1 ]; then exit 1; fi
+          exit 0
+
+      - name: Terraform Apply
+        working-directory: ${{ inputs.layer }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Terraform Output
+        if: always()
+        working-directory: ${{ inputs.layer }}
+        run: terraform output -no-color || true
+
+      - name: Logout
+        if: always()
+        run: az logout

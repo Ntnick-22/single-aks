@@ -1,0 +1,104 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: "Layer to plan"
+        required: true
+        type: choice
+        options:
+          - 00_rg
+          - 01_networking
+          - 04_aks
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      layers: ${{ steps.set.outputs.layers }}
+    steps:
+      - name: Set layers
+        id: set
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo 'layers=["00_rg","01_networking","04_aks"]' >> $GITHUB_OUTPUT
+          else
+            echo 'layers=["${{ inputs.layer }}"]' >> $GITHUB_OUTPUT
+          fi
+
+  plan:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        layer: ${{ fromJSON(needs.setup.outputs.layers) }}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Terraform Init
+        working-directory: ${{ matrix.layer }}
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        working-directory: ${{ matrix.layer }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ matrix.layer }}
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -no-color 2>&1 | tee plan_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          echo "exitcode=${EXIT_CODE}" >> $GITHUB_OUTPUT
+          if [ $EXIT_CODE -eq 1 ]; then exit 1; fi
+
+      - name: Post Plan Comment to PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs')
+            const plan = fs.readFileSync('${{ matrix.layer }}/plan_output.txt', 'utf8')
+            const exitcode = '${{ steps.plan.outputs.exitcode }}'
+            const icons  = { '0': '✅', '1': '❌', '2': '⚠️' }
+            const labels = { '0': 'No changes', '1': 'Plan failed', '2': 'Changes detected' }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `### ${icons[exitcode] || '❓'} Terraform Plan: \`${{ matrix.layer }}\` — ${labels[exitcode] || 'Unknown'}\n\n<details><summary>Show Plan Output</summary>\n\n\`\`\`terraform\n${plan.slice(0, 60000)}\n\`\`\`\n\n</details>`
+            })
+
+      - name: Logout
+        if: always()
+        run: az logout
