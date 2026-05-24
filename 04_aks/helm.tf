@@ -16,6 +16,11 @@ resource "helm_release" "nginx_ingress" {
     name  = "controller.service.type"
     value = "LoadBalancer"
   }
+
+  set {
+    name  = "controller.service.externalTrafficPolicy"
+    value = "Local"
+  }
 }
 
 # Cert Manager — issues and renews TLS certificates automatically (e.g. from Let's Encrypt).
