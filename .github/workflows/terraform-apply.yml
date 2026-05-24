@@ -10,6 +10,7 @@ on:
         options:
           - 00_rg
           - 01_networking
+          - 02_vm
           - 04_aks
 
 permissions:
