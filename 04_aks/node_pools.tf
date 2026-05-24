@@ -19,9 +19,6 @@ resource "azurerm_kubernetes_cluster_node_pool" "db_pool" {
   }
 }
 
-# Production pool — general application workloads.
-# No taint, so any pod can schedule here, but node_labels let you
-# use nodeSelector/nodeAffinity to pin prod pods explicitly.
 resource "azurerm_kubernetes_cluster_node_pool" "prod_pool" {
   name                  = "prodpool"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.aks.id
