@@ -1,6 +1,4 @@
-# Nginx Ingress Controller — the official chart from kubernetes.github.io.
-# Creates a LoadBalancer service in Azure, which provisions a public IP automatically.
-# All HTTP/HTTPS traffic into the cluster flows through this controller.
+
 resource "helm_release" "nginx_ingress" {
   name             = "ingress-nginx"
   repository       = "https://kubernetes.github.io/ingress-nginx"
