@@ -5,3 +5,8 @@ variable "vm_name" {
 variable "public_key" {
   type = string
 }
+
+variable "vpn_vnet_name" {
+  type    = string
+  default = "vpn-vnet"
+}

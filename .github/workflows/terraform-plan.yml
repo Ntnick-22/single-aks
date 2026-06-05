@@ -13,6 +13,7 @@ on:
         options:
           - 00_rg
           - 01_networking
+          - 02_vm
           - 04_aks
 
 permissions:
@@ -37,7 +38,7 @@ jobs:
         id: set
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo 'layers=["00_rg","01_networking","04_aks"]' >> $GITHUB_OUTPUT
+            echo 'layers=["00_rg","01_networking","02_vm","04_aks"]' >> $GITHUB_OUTPUT
           else
             echo 'layers=["${{ inputs.layer }}"]' >> $GITHUB_OUTPUT
           fi

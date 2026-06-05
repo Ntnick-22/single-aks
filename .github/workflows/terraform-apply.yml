@@ -12,6 +12,7 @@ on:
           - 01_networking
           - 02_vm
           - 04_aks
+          - 05_helm
 
 permissions:
   id-token: write

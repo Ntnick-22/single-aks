@@ -24,3 +24,16 @@ resource "helm_release" "cert_manager" {
     { name = "crds.enabled", value = "true" },
   ]
 }
+
+resource "helm_release" "argocd" {
+  name             = "argocd"
+  repository       = "https://argoproj.github.io/argo-helm"
+  chart            = "argo-cd"
+  namespace        = "argocd"
+  create_namespace = true
+  version          = var.argocd_version
+
+  set = [
+    { name = "server.service.type", value = "ClusterIP" },
+  ]
+}
