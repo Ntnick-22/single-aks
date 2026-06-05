@@ -33,10 +33,25 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Check AKS exists
+        id: check_aks
+        run: |
+          AKS_EXISTS=$(az aks show \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --name ${{ secrets.AZURE_AKS_NAME }} \
+            --query name -o tsv 2>/dev/null || echo "")
+          echo "exists=$( [ -n "$AKS_EXISTS" ] && echo true || echo false )" >> $GITHUB_OUTPUT
+
+      - name: Skip notice
+        if: steps.check_aks.outputs.exists == 'false'
+        run: echo "AKS cluster not found — skipping helm deployment."
+
       - name: Install kubectl + kubelogin
+        if: steps.check_aks.outputs.exists == 'true'
         run: az aks install-cli
 
       - name: Get AKS credentials
+        if: steps.check_aks.outputs.exists == 'true'
         run: |
           az aks get-credentials \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
@@ -45,27 +60,34 @@ jobs:
           kubelogin convert-kubeconfig -l azurecli
 
       - name: Verify cluster access
+        if: steps.check_aks.outputs.exists == 'true'
         run: kubectl get nodes
 
       - name: Setup Terraform
+        if: steps.check_aks.outputs.exists == 'true'
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
+        if: steps.check_aks.outputs.exists == 'true'
         working-directory: 05_helm
         run: terraform init
 
       - name: Terraform Validate
+        if: steps.check_aks.outputs.exists == 'true'
         working-directory: 05_helm
         run: terraform validate
 
       - name: Terraform Format Check
+        if: steps.check_aks.outputs.exists == 'true'
         working-directory: 05_helm
         run: terraform fmt -check
 
       - name: Terraform Plan
+        if: steps.check_aks.outputs.exists == 'true'
         working-directory: 05_helm
         run: terraform plan -out=tfplan
 
       - name: Terraform Apply
+        if: steps.check_aks.outputs.exists == 'true'
         working-directory: 05_helm
         run: terraform apply -auto-approve tfplan
