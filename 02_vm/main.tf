@@ -72,7 +72,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   name                = var.vm_name
   location            = data.terraform_remote_state.rg.outputs.location
   resource_group_name = data.terraform_remote_state.rg.outputs.resource_group_name
-  size                = "Standard_B2ms"
+  size                = "Standard_D2s_v3"
   admin_username      = "azureuser"
 
   disable_password_authentication = true
