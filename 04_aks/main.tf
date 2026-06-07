@@ -98,3 +98,17 @@ resource "azurerm_kubernetes_cluster" "aks" {
     dns_service_ip = "10.96.0.10"
   }
 }
+
+resource "azurerm_container_registry" "acr" {
+  name                = "sharedaksnick"
+  resource_group_name = data.terraform_remote_state.rg.outputs.resource_group_name
+  location            = var.location
+  sku                 = "Basic"
+}
+
+resource "azurerm_role_assignment" "aks_acr_pull" {
+  principal_id                     = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
+  role_definition_name             = "AcrPull"
+  scope                            = azurerm_container_registry.acr.id
+  skip_service_principal_aad_check = true
+}
