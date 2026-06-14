@@ -77,7 +77,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   # It must stay in the cluster resource — cannot be a separate node pool resource.
   default_node_pool {
     name           = "default"
-    node_count     = 2
+    node_count     = 1
     vm_size        = "Standard_D2s_v3"
     vnet_subnet_id = azurerm_subnet.aks_subnet.id
 
