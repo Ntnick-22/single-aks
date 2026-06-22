@@ -10,6 +10,7 @@ on:
         options:
           - 05_helm
           - 04_aks
+          - 03_rancher
           - 02_vm
           - 01_networking
           - 00_rg

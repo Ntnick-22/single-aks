@@ -148,6 +148,13 @@ resource "azurerm_linux_virtual_machine" "vm" {
     mkdir -p /var/log/openvpn
     systemctl enable openvpn@server
     systemctl start openvpn@server
+
+    # Masquerade VPN tunnel traffic so AKS nodes can reply back to VPN clients
+    iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+
+    # Persist iptables rules across reboots
+    apt-get install -y iptables-persistent
+    netfilter-persistent save
     EOF
   )
 }

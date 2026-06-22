@@ -11,6 +11,7 @@ on:
           - 00_rg
           - 01_networking
           - 02_vm
+          - 03_rancher
           - 04_aks
           - 05_helm
 
