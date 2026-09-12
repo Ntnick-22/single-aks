@@ -1,1 +1,1 @@
-vnet_name = "shared-vnet"
+vnet_name = "myask-vnet"
