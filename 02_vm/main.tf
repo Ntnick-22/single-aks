@@ -38,13 +38,13 @@ resource "azurerm_network_security_group" "nsg" {
   }
 
   security_rule {
-    name                       = "Allow-OpenVPN"
+    name                       = "Allow-WireGuard"
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Udp"
     source_port_range          = "*"
-    destination_port_range     = "1194"
+    destination_port_range     = "51820"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
@@ -98,63 +98,36 @@ resource "azurerm_linux_virtual_machine" "vm" {
     version   = "latest"
   }
 
+  # WireGuard: each side generates its own keypair; only public keys are exchanged.
+  # The server's private key never leaves this VM, and the client's private key
+  # (on your laptop) never gets sent here at all — only its public key is baked
+  # into this boot script as a Terraform variable.
   custom_data = base64encode(<<-EOF
     #!/bin/bash
     apt-get update -y
-    apt-get install -y openvpn easy-rsa
+    apt-get install -y wireguard
 
     echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
     sysctl -p
 
-    make-cadir /etc/openvpn/easy-rsa
-    cd /etc/openvpn/easy-rsa
+    umask 077
+    wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
 
-    ./easyrsa init-pki
-    echo "DevOps-CA" | ./easyrsa build-ca nopass
-    ./easyrsa gen-dh
-    ./easyrsa build-server-full server nopass
-    ./easyrsa build-client-full client1 nopass
+    cat > /etc/wireguard/wg0.conf <<WG
+    [Interface]
+    Address = 10.8.0.1/24
+    ListenPort = 51820
+    PrivateKey = $(cat /etc/wireguard/privatekey)
+    PostUp = iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+    PostDown = iptables -t nat -D POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
 
-    cp pki/ca.crt /etc/openvpn/
-    cp pki/issued/server.crt /etc/openvpn/
-    cp pki/private/server.key /etc/openvpn/
-    cp pki/dh.pem /etc/openvpn/
+    [Peer]
+    PublicKey = ${var.wg_client_public_key}
+    AllowedIPs = 10.8.0.2/32
+    WG
 
-    openvpn --genkey secret /etc/openvpn/ta.key
-
-    cat > /etc/openvpn/server.conf <<OVPN
-    port 1194
-    proto udp
-    dev tun
-    ca ca.crt
-    cert server.crt
-    key server.key
-    dh dh.pem
-    tls-auth ta.key 0
-    server 10.8.0.0 255.255.255.0
-    push "route 10.0.0.0 255.255.0.0"
-    push "route 10.1.0.0 255.255.0.0"
-    keepalive 10 120
-    cipher AES-256-CBC
-    user nobody
-    group nogroup
-    persist-key
-    persist-tun
-    status /var/log/openvpn/openvpn-status.log
-    log-append /var/log/openvpn/openvpn.log
-    verb 3
-    OVPN
-
-    mkdir -p /var/log/openvpn
-    systemctl enable openvpn@server
-    systemctl start openvpn@server
-
-    # Masquerade VPN tunnel traffic so AKS nodes can reply back to VPN clients
-    iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
-
-    # Persist iptables rules across reboots
-    apt-get install -y iptables-persistent
-    netfilter-persistent save
+    systemctl enable wg-quick@wg0
+    systemctl start wg-quick@wg0
     EOF
   )
 }
