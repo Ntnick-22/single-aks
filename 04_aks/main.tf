@@ -111,3 +111,31 @@ resource "azurerm_role_assignment" "aks_acr_pull" {
   role_definition_name = "AcrPull"
   scope                = azurerm_container_registry.acr.id
 }
+
+# AKS auto-generates a second NSG on the node NICs inside its managed node
+# resource group (MC_*) — separate from aks_nsg above, which only covers the
+# subnet. Traffic must pass both, so the VPN needs a rule here too.
+# NOTE: Azure can reconcile/reset resources in the MC_* group on node pool
+# operations (scaling, k8s upgrades), which can revert this rule outside of
+# Terraform and cause state drift. If that happens, re-run `terraform apply`
+# on this module to restore it.
+data "azurerm_resources" "aks_node_nsg" {
+  resource_group_name = "MC_${data.terraform_remote_state.rg.outputs.resource_group_name}_${azurerm_kubernetes_cluster.aks.name}_${var.location}"
+  type                = "Microsoft.Network/networkSecurityGroups"
+
+  depends_on = [azurerm_kubernetes_cluster.aks]
+}
+
+resource "azurerm_network_security_rule" "allow_vpn_nodeports" {
+  name                        = "Allow-VPN-NodePorts"
+  priority                    = 100
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "30000-32767"
+  source_address_prefix       = "10.1.0.0/16"
+  destination_address_prefix  = "*"
+  resource_group_name         = data.azurerm_resources.aks_node_nsg.resource_group_name
+  network_security_group_name = data.azurerm_resources.aks_node_nsg.resources[0].name
+}
