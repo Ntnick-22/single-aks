@@ -21,6 +21,9 @@ resource "azurerm_network_security_group" "rancher_nsg" {
   location            = data.terraform_remote_state.rg.outputs.location
   resource_group_name = data.terraform_remote_state.rg.outputs.resource_group_name
 
+  # Locked to the WireGuard tunnel client subnet only — Rancher's management
+  # plane is no longer reachable from the open internet, consistent with
+  # ArgoCD and the AKS API (both VPN-gated too).
   security_rule {
     name                       = "Allow-SSH"
     priority                   = 100
@@ -29,7 +32,7 @@ resource "azurerm_network_security_group" "rancher_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "*"
+    source_address_prefix      = "10.8.0.0/24"
     destination_address_prefix = "*"
   }
 
@@ -41,7 +44,7 @@ resource "azurerm_network_security_group" "rancher_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "80"
-    source_address_prefix      = "*"
+    source_address_prefix      = "10.8.0.0/24"
     destination_address_prefix = "*"
   }
 
@@ -53,7 +56,7 @@ resource "azurerm_network_security_group" "rancher_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "443"
-    source_address_prefix      = "*"
+    source_address_prefix      = "10.8.0.0/24"
     destination_address_prefix = "*"
   }
 }
