@@ -21,9 +21,9 @@ resource "azurerm_network_security_group" "rancher_nsg" {
   location            = data.terraform_remote_state.rg.outputs.location
   resource_group_name = data.terraform_remote_state.rg.outputs.resource_group_name
 
-  # Locked to the WireGuard tunnel client subnet only — Rancher's management
-  # plane is no longer reachable from the open internet, consistent with
-  # ArgoCD and the AKS API (both VPN-gated too).
+  # SSH stays VPN-gated for admin access. Ports 80/443 are gone entirely —
+  # Cloudflare Tunnel is outbound-only from the VM, so the Rancher UI needs
+  # zero inbound web ports open at all.
   security_rule {
     name                       = "Allow-SSH"
     priority                   = 100
@@ -32,30 +32,6 @@ resource "azurerm_network_security_group" "rancher_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "10.8.0.0/24"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "Allow-HTTP"
-    priority                   = 110
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "80"
-    source_address_prefix      = "10.8.0.0/24"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "Allow-HTTPS"
-    priority                   = 120
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
     source_address_prefix      = "10.8.0.0/24"
     destination_address_prefix = "*"
   }
@@ -116,7 +92,7 @@ resource "azurerm_linux_virtual_machine" "rancher_vm" {
   custom_data = base64encode(<<-EOF
     #!/bin/bash
     apt-get update -y
-    apt-get install -y docker.io
+    apt-get install -y docker.io curl
     systemctl enable docker
     systemctl start docker
 
@@ -126,6 +102,12 @@ resource "azurerm_linux_virtual_machine" "rancher_vm" {
       -p 80:80 -p 443:443 \
       --privileged \
       rancher/rancher:latest
+
+    # Cloudflare Tunnel: outbound-only connector, no inbound ports needed.
+    # Public hostname -> localhost:443 is configured on the Cloudflare side.
+    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
+    dpkg -i /tmp/cloudflared.deb
+    cloudflared service install ${var.cloudflare_tunnel_token}
     EOF
   )
 }
