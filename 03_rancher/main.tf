@@ -86,7 +86,10 @@ resource "azurerm_linux_virtual_machine" "rancher_vm" {
   }
 
   # Boot script: installs Docker, then runs Rancher as a container.
-  # Rancher binds ports 80 and 443 on the host — that's the UI.
+  # Rancher runs in "Proxy/Load Balancer with SSL Termination" mode — HTTP
+  # only (port 80), no self-signed listener/CA of its own. Cloudflare Tunnel
+  # is the sole TLS terminator, so agents trust a real public cert instead of
+  # Rancher's internal dynamiclistener CA.
   # --privileged is required by Rancher to manage its embedded k3s control plane.
   # --restart=unless-stopped means Rancher survives VM reboots automatically.
   custom_data = base64encode(<<-EOF
@@ -99,12 +102,12 @@ resource "azurerm_linux_virtual_machine" "rancher_vm" {
     sleep 10
 
     docker run -d --restart=unless-stopped \
-      -p 80:80 -p 443:443 \
+      -p 80:80 \
       --privileged \
       rancher/rancher:latest
 
     # Cloudflare Tunnel: outbound-only connector, no inbound ports needed.
-    # Public hostname -> localhost:443 is configured on the Cloudflare side.
+    # Public hostname -> localhost:80 is configured on the Cloudflare side.
     curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
     dpkg -i /tmp/cloudflared.deb
     cloudflared service install ${var.cloudflare_tunnel_token}
