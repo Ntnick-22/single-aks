@@ -1,79 +1,70 @@
 # single-aks
 
-Terraform infrastructure for a single AKS cluster on Azure. Organised into independent layers — each layer manages one concern and stores its state remotely in Azure Blob Storage.
+Single-node AKS on Azure. Terraform + GitHub Actions for infra, ArgoCD for GitOps delivery, Rancher for cluster ops, WireGuard + Cloudflare Tunnel for access.
+
+Companion repo: [`gitops`](https://github.com/Ntnick-22/gitops) (private — manifests ArgoCD deploys onto this cluster).
+
+## Two repos, two jobs
+
+**`single-aks`** (public) — **infra**. Terraform that builds the actual Azure resources: VNets, VMs, the AKS cluster itself, ACR. Applied manually, on demand, via `terraform-apply.yml`. Nothing watches this repo continuously — it only changes when you explicitly run the workflow.
+
+**`gitops`** (private) — **what runs on top of the infra**. Helm charts + ArgoCD `ApplicationSet`s describing the actual workloads (`backend`/`frontend`/`worker`). ArgoCD — itself installed *by* `single-aks`'s `05_helm` layer, running *inside* the cluster `single-aks` built — polls this repo every ~3 minutes and reconciles the live cluster to match it.
+
+**How they connect:** one-directional, not a sync loop. `single-aks` builds the platform once; `gitops` is the continuously-reconciled source of truth for everything deployed on top of it. `single-aks` doesn't know `gitops` exists — ArgoCD is the only thing watching, and it only watches `gitops`, never the infra repo. Change infra → re-run a Terraform layer by hand. Change an app → push to `gitops`, ArgoCD picks it up on its own.
 
 ## Architecture
 
 ```
-00_rg          Resource Group
-01_networking  Virtual Network + Subnets
-02_vm          Jump/bastion Linux VM
-04_aks         AKS Cluster + Node Pools
+ laptop
+   │
+   ├─ WireGuard ──────────► vpn-vm ──(VNet peering)──► myaks-vnet
+   │                                                         │
+   ├─ kubectl (public API) ─────────────────────────────────►│
+   │                                                          ▼
+   │                                                   shared-aks (AKS)
+   │                                                    ├─ ArgoCD ──(SSH deploy key, read-only)──► gitops (private)
+   │                                                    └─ backend / frontend / worker ──► ACR (sharedaksnick)
+   │
+   └─ https://rancher.nt-nick.link ─┐
+      https://argocd.nt-nick.link ──┴─► Cloudflare Edge ──(outbound-only tunnel)──► rancher-vm / argocd-server
 ```
 
-Each layer reads outputs from the layers it depends on via `terraform_remote_state`.
+## Stack
 
-## Layer Details
+Terraform · GitHub Actions (OIDC) · AKS · ArgoCD · Rancher · WireGuard · Cloudflare Tunnel · Traefik · cert-manager · ACR
 
-### 00_rg
-Creates the resource group. All other layers reference this via remote state to get the resource group name and location.
+## Layers
 
-### 01_networking
-Creates the VNet (`10.0.0.0/16`) and a VM subnet (`10.0.1.0/24`). The AKS subnet is managed inside `04_aks` directly.
-
-### 02_vm
-Provisions a Linux jump VM (`Standard_B1s`, Ubuntu 22.04) with:
-- Static public IP
-- NSG with SSH inbound rule
-- SSH key authentication only (no password)
-
-### 04_aks
-Provisions the AKS cluster with:
-- `kubenet` network plugin
-- 2-node default pool (`Standard_D2s_v3`)
-- 2 extra node pools — `dbpool` (tainted `role=db:NoSchedule`) and `prodpool`
-- `SystemAssigned` managed identity
-- NSG attached to AKS subnet allowing HTTP/HTTPS/LB health probes
-
-
-
-## State Backend
-
-All layers use Azure Blob Storage for remote state:
-
-| Layer | State Key |
+| Layer | Does |
 |---|---|
-| 00_rg | `00_rg/terraform.tfstate` |
-| 01_networking | `01_networking/terraform.tfstate` |
-| 02_vm | `02_vm/terraform.tfstate` |
-| 04_aks | `04_aks/terraform.tfstate` |
+| `00_rg` | resource group |
+| `01_networking` | `myask-vnet` (`10.0.0.0/16`) |
+| `02_vm` | WireGuard VPN, peered into `myask-vnet` |
+| `03_rancher` | Rancher (Docker) + Cloudflare Tunnel connector |
+| `04_aks` | AKS cluster, node pool, ACR, `AcrPull` binding |
+| `05_helm` | Traefik, cert-manager, ArgoCD |
 
-Storage account: `aksk8state` in resource group `aks-k8-rg`.
+Each layer = its own remote state, applied independently via `terraform-apply.yml`.
 
-## CI/CD
+## Notable choices
 
-Two GitHub Actions workflows in `.github/workflows/`:
+- **WireGuard** — keys generated on both ends independently, only public keys ever transmitted.
+- **Rancher + ArgoCD behind Cloudflare Tunnel** — outbound-only from each VM/pod, zero inbound ports for the management plane, real TLS certs instead of self-signed.
+- **`gitops` is private** — ArgoCD authenticates via a read-only SSH deploy key scoped to that one repo, not a personal token.
+- **`selfHeal: true`, `prune: true`** — git is the actual source of truth; manual `kubectl edit` gets reverted on next reconcile.
+- **RBAC in ArgoCD** — `developer` read-only, `devops` admin. No shared admin login day-to-day.
+- **SSH restricted to the WireGuard subnet** on every VM.
 
-### terraform-plan.yml
-- Triggers on pull requests to `main` (plans all layers) or manual dispatch (plan a specific layer)
-- Posts plan output as a PR comment
+## Screenshots
 
-### terraform-apply.yml
-- Manual dispatch only (`workflow_dispatch`)
-- Select the layer to apply from the dropdown
-- Authentication via GitHub OIDC → Azure (no stored credentials)
+`![WireGuard tunnel connected](docs/screenshots/wireguard-connected.png)`
 
-### Authentication
-Uses GitHub OIDC federation — no client secrets stored in GitHub. Required secrets:
-- `AZURE_CLIENT_ID`
-- `AZURE_TENANT_ID`
-- `AZURE_SUBSCRIPTION_ID`
+`![Rancher — shared-aks Active](docs/screenshots/rancher-dashboard.png)`
 
-## Apply Order
+`![ArgoCD — all apps Synced/Healthy](docs/screenshots/argocd-apps-synced.png)`
 
-Layers must be applied in dependency order:
+`![ArgoCD RBAC — developer, read-only](docs/screenshots/argocd-rbac-developer.png)`
 
-```
-00_rg → 01_networking → 02_vm
-                      → 04_aks
-```
+`![Cloudflare Tunnels healthy](docs/screenshots/cloudflare-tunnels.png)`
+
+`![GitHub Actions — OIDC apply run](docs/screenshots/github-actions-oidc.png)`

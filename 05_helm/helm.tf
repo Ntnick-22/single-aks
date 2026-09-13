@@ -35,5 +35,6 @@ resource "helm_release" "argocd" {
 
   set = [
     { name = "server.service.type", value = "ClusterIP" },
+    { name = "configs.cm.url", value = "https://argocd.nt-nick.link" },
   ]
 }

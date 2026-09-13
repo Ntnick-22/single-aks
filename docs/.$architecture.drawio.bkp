@@ -1,0 +1,77 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Architecture" id="arch1">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Background containers: black outline, no fill -->
+        <mxCell id="rg" value="Azure — shared-tf-rg" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=#F2F2F2;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontSize=13;fontStyle=1;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="1180" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="vpnvnet" value="vpn-vnet (10.1.0.0/16)" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=#D9E8F5;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontSize=12;align=left;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="300" y="90" width="340" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="myaksvnet" value="myaks-vnet (10.0.0.0/16)" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=#D9E8F5;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontSize=12;align=left;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="700" y="90" width="460" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="aksbox" value="shared-aks (AKS cluster)" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=#DCEEDC;strokeColor=#000000;fontColor=#000000;verticalAlign=top;fontSize=12;align=left;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="730" y="140" width="400" height="300" as="geometry" />
+        </mxCell>
+
+        <!-- Nodes: brand colors -->
+        <mxCell id="laptop" value="You (laptop)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontColor=#000000;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cf" value="Cloudflare Edge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F38020;strokeColor=#000000;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="vpnvm" value="vpn-vm&#10;(WireGuard)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#000000;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="150" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ranchervm" value="rancher-vm&#10;(Rancher, Docker)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#000000;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="280" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="argocd" value="ArgoCD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#326CE5;strokeColor=#000000;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="190" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="apps" value="backend / frontend / worker&#10;(dev, uat, prod)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#326CE5;strokeColor=#000000;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="290" width="340" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="acr" value="ACR&#10;sharedaksnick" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#000000;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="510" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gitops" value="gitops repo&#10;(private)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#24292F;strokeColor=#000000;fontColor=#FFFFFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="200" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edges: black, bold labels -->
+        <mxCell id="e1" value="WireGuard" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1" source="laptop" target="vpnvm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="VNet peering" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;fontSize=11;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1" source="vpnvnet" target="myaksvnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="kubectl (public API)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1" source="laptop" target="aksbox">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="https://rancher.nt-nick.link&#10;https://argocd.nt-nick.link" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1" source="laptop" target="cf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="outbound tunnel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1" source="cf" target="ranchervm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="outbound tunnel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1" source="cf" target="argocd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="SSH deploy key&#10;(read-only)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1" source="argocd" target="gitops">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="image pull" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=#000000;strokeColor=#000000;" edge="1" parent="1" source="apps" target="acr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

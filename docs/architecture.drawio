@@ -1,0 +1,87 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.0.3 Chrome/140.0.7339.249 Electron/38.7.0 Safari/537.36" version="29.0.3">
+  <diagram name="Architecture" id="arch1">
+    <mxGraphModel dx="1656" dy="968" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0" adaptiveColors="simple">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="rg" value="Azure — shared-tf-rg" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;verticalAlign=top;fontSize=13;fontStyle=1;align=left;spacingLeft=8;spacingTop=6;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="290" y="10" width="1180" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="vpnvnet" value="vpn-vnet (10.1.0.0/16)" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;verticalAlign=top;fontSize=12;align=left;spacingLeft=6;spacingTop=6;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="320" y="50" width="340" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="myaksvnet" value="myaks-vnet (10.0.0.0/16)" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;verticalAlign=top;fontSize=12;align=left;spacingLeft=6;spacingTop=6;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="700" y="90" width="460" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="aksbox" value="shared-aks (AKS cluster)" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;verticalAlign=top;fontSize=12;align=left;spacingLeft=6;spacingTop=6;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="730" y="140" width="400" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="cf" value="Cloudflare Edge" style="rounded=0;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="40" y="580" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="vpnvm" value="vpn-vm&#xa;(WireGuard)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="340" y="150" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ranchervm" value="rancher-vm&#xa;(Rancher, Docker)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="420" y="330" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="argocd" value="ArgoCD" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="760" y="190" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="apps" value="backend / frontend / worker&#xa;(dev, uat, prod)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="760" y="290" width="340" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="acr" value="ACR&#xa;sharedaksnick" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="700" y="510" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gitops" value="gitops repo&#xa;(private)" style="rounded=0;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;labelBackgroundColor=none;" parent="1" vertex="1">
+          <mxGeometry x="1280" y="200" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="&lt;span style=&quot;background-color: rgb(51, 51, 255);&quot;&gt;WireGuard&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeWidth=1.5;" parent="1" source="gg77j70s2uRTbMzUEJIc-1" target="vpnvm" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="410" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="125" y="400" />
+              <mxPoint x="450" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="&lt;span style=&quot;background-color: rgb(51, 51, 255);&quot;&gt;VNet peering&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeWidth=1.5;" parent="1" source="vpnvnet" target="myaksvnet" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="&lt;span style=&quot;background-color: rgb(51, 51, 255);&quot;&gt;kubectl (public API)&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeWidth=1.5;" parent="1" source="gg77j70s2uRTbMzUEJIc-1" target="aksbox" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="&lt;span&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;&lt;font style=&quot;color: rgb(51, 51, 255);&quot;&gt;https://rancher.nt-nick.link&lt;br&gt;&lt;/font&gt;&lt;/span&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;&lt;font style=&quot;color: rgb(51, 51, 255);&quot;&gt;https://argocd.nt-nick.link&lt;/font&gt;&lt;/span&gt;&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeWidth=1.5;" parent="1" source="gg77j70s2uRTbMzUEJIc-1" target="cf" edge="1">
+          <mxGeometry x="0.1667" y="75" relative="1" as="geometry">
+            <mxPoint x="140" y="440" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="125" y="540" />
+              <mxPoint x="125" y="540" />
+            </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value="&lt;span style=&quot;background-color: rgb(51, 51, 255);&quot;&gt;outbound tunnel&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeWidth=1.5;" parent="1" source="cf" target="ranchervm" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="&lt;span style=&quot;background-color: rgb(51, 51, 255);&quot;&gt;outbound tunnel&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeWidth=1.5;" parent="1" source="cf" target="argocd" edge="1">
+          <mxGeometry x="0.0007" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" value="&lt;span style=&quot;background-color: rgb(51, 51, 255);&quot;&gt;SSH deploy key&lt;br&gt;(read-only)&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeWidth=1.5;" parent="1" source="argocd" target="gitops" edge="1">
+          <mxGeometry x="0.0022" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" value="&lt;span style=&quot;background-color: rgb(51, 51, 255);&quot;&gt;image pull&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;fontColor=default;labelBackgroundColor=none;strokeWidth=1.5;" parent="1" source="apps" target="acr" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gg77j70s2uRTbMzUEJIc-1" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;rounded=0;labelBackgroundColor=none;" vertex="1" parent="1">
+          <mxGeometry x="110" y="280" width="30" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
